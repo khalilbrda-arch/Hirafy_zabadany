@@ -1,0 +1,9 @@
+{
+  "name": "حرفي الزبداني",
+  "short_name": "حرفي",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#F5F1EA",
+  "theme_color": "#B5764C",
+  "icons": []
+}
