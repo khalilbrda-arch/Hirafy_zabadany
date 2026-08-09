@@ -1,4 +1,24 @@
 import { useState } from 'react'
+import { auth, db } from '../firebase'
+import { createUserWithEmailAndPassword, signInWithEmailAndPassword } from 'firebase/auth'
+import { doc, setDoc } from 'firebase/firestore'
+
+const translateError = (code) => {
+  switch (code) {
+    case 'auth/email-already-in-use':
+      return 'هذا البريد الإلكتروني مسجّل مسبقاً'
+    case 'auth/weak-password':
+      return 'كلمة المرور قصيرة جداً (6 أحرف على الأقل)'
+    case 'auth/invalid-email':
+      return 'صيغة البريد الإلكتروني غير صحيحة'
+    case 'auth/invalid-credential':
+    case 'auth/wrong-password':
+    case 'auth/user-not-found':
+      return 'البريد الإلكتروني أو كلمة المرور غير صحيحة'
+    default:
+      return 'حدث خطأ ما، حاول مرة أخرى'
+  }
+}
 
 const LoginRegister = ({ onLoginSuccess }) => {
   const [mode, setMode] = useState('login')
@@ -7,8 +27,9 @@ const LoginRegister = ({ onLoginSuccess }) => {
   const [fullName, setFullName] = useState('')
   const [accountType, setAccountType] = useState(null)
   const [error, setError] = useState('')
+  const [loading, setLoading] = useState(false)
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault()
     setError('')
 
@@ -16,18 +37,29 @@ const LoginRegister = ({ onLoginSuccess }) => {
       setError('يرجى ملء جميع الحقول')
       return
     }
-    if (mode === 'register') {
-      if (!fullName.trim()) {
-        setError('يرجى إدخال الاسم الكامل')
-        return
-      }
-      if (!accountType) {
-        setError('يرجى اختيار نوع الحساب')
-        return
-      }
+    if (mode === 'register' && (!fullName.trim() || !accountType)) {
+      setError('يرجى إدخال الاسم واختيار نوع الحساب')
+      return
     }
 
-    onLoginSuccess()
+    setLoading(true)
+    try {
+      if (mode === 'register') {
+        const userCredential = await createUserWithEmailAndPassword(auth, email, password)
+        await setDoc(doc(db, 'profiles', userCredential.user.uid), {
+          fullName,
+          accountType,
+          email,
+        })
+      } else {
+        await signInWithEmailAndPassword(auth, email, password)
+      }
+      onLoginSuccess()
+    } catch (err) {
+      setError(translateError(err.code))
+    } finally {
+      setLoading(false)
+    }
   }
 
   return (
@@ -111,9 +143,10 @@ const LoginRegister = ({ onLoginSuccess }) => {
 
           <button
             type="submit"
-            className="w-full bg-copper text-white py-3 rounded-xl font-medium hover:bg-copper/90 transition-colors"
+            disabled={loading}
+            className="w-full bg-copper text-white py-3 rounded-xl font-medium hover:bg-copper/90 transition-colors disabled:opacity-60"
           >
-            {mode === 'login' ? 'تسجيل الدخول' : 'إنشاء حساب'}
+            {loading ? 'جاري التحميل...' : mode === 'login' ? 'تسجيل الدخول' : 'إنشاء حساب'}
           </button>
         </form>
 
