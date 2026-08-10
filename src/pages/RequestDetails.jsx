@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react'
 import { db, auth } from '../firebase'
-import { doc, addDoc, serverTimestamp, collection, query, where, onSnapshot, updateDoc, writeBatch } from 'firebase/firestore'
+import { doc, addDoc, serverTimestamp, collection, query, where, onSnapshot, updateDoc, writeBatch, getDocs } from 'firebase/firestore'
 import Timeline from '../components/Timeline'
 import Chat from '../components/Chat'
+import RatingModal from '../components/RatingModal'
 
 const OffersList = ({ requestId, isOwner, requestStatus, offers }) => {
   const [accepting, setAccepting] = useState(false)
@@ -11,7 +12,6 @@ const OffersList = ({ requestId, isOwner, requestStatus, offers }) => {
     setAccepting(true)
     try {
       const batch = writeBatch(db)
-
       const requestRef = doc(db, 'requests', requestId)
       batch.update(requestRef, {
         status: 'قيد التنفيذ',
@@ -19,12 +19,10 @@ const OffersList = ({ requestId, isOwner, requestStatus, offers }) => {
         craftsmanId: offer.craftsmanId,
         stage: 'تم الاختيار',
       })
-
       offers.forEach((o) => {
         const offerRef = doc(db, 'offers', o.id)
         batch.update(offerRef, { status: o.id === offer.id ? 'مقبول' : 'مرفوض' })
       })
-
       await batch.commit()
     } catch (err) {
       console.error(err)
@@ -48,8 +46,7 @@ const OffersList = ({ requestId, isOwner, requestStatus, offers }) => {
           {offer.message && <p className="text-sm text-dark-text/70 mb-2">{offer.message}</p>}
           <span className={`text-xs px-2 py-1 rounded-full ${
             offer.status === 'مقبول' ? 'bg-green-50 text-green-700' :
-            offer.status === 'مرفوض' ? 'bg-gray-50 text-gray-500' :
-            'bg-blue-50 text-blue-700'
+            offer.status === 'مرفوض' ? 'bg-gray-50 text-gray-500' : 'bg-blue-50 text-blue-700'
           }`}>
             {offer.status}
           </span>
@@ -103,11 +100,7 @@ const OfferForm = ({ requestId, profile }) => {
   }
 
   if (success) {
-    return (
-      <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-xl text-sm text-center mt-4">
-        تم تقديم عرضك بنجاح!
-      </div>
-    )
+    return <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-xl text-sm text-center mt-4">تم تقديم عرضك بنجاح!</div>
   }
 
   return (
@@ -148,12 +141,12 @@ const RequestDetails = ({ requestId, onBack, profile }) => {
   const [request, setRequest] = useState(null)
   const [offers, setOffers] = useState([])
   const [loading, setLoading] = useState(true)
+  const [showRating, setShowRating] = useState(false)
+  const [alreadyRated, setAlreadyRated] = useState(false)
 
   useEffect(() => {
     const unsubscribe = onSnapshot(doc(db, 'requests', requestId), (snap) => {
-      if (snap.exists()) {
-        setRequest({ id: snap.id, ...snap.data() })
-      }
+      if (snap.exists()) setRequest({ id: snap.id, ...snap.data() })
       setLoading(false)
     })
     return () => unsubscribe()
@@ -167,12 +160,24 @@ const RequestDetails = ({ requestId, onBack, profile }) => {
     return () => unsubscribe()
   }, [requestId])
 
+  useEffect(() => {
+    const checkRated = async () => {
+      if (!request || request.status !== 'تم الإنجاز') return
+      const q = query(
+        collection(db, 'ratings'),
+        where('requestId', '==', requestId),
+        where('raterUserId', '==', auth.currentUser.uid)
+      )
+      const snap = await getDocs(q)
+      if (!snap.empty) setAlreadyRated(true)
+    }
+    checkRated()
+  }, [request, requestId])
+
   const handleAdvanceStage = async (nextStage) => {
     try {
       const updates = { stage: nextStage }
-      if (nextStage === 'تم الإنجاز') {
-        updates.status = 'تم الإنجاز'
-      }
+      if (nextStage === 'تم الإنجاز') updates.status = 'تم الإنجاز'
       await updateDoc(doc(db, 'requests', requestId), updates)
     } catch (err) {
       console.error(err)
@@ -193,6 +198,9 @@ const RequestDetails = ({ requestId, onBack, profile }) => {
   const canOffer = isCraftsman && !isOwner && request.status === 'منشور'
   const showTimeline = request.status === 'قيد التنفيذ' || request.status === 'تم الإنجاز'
   const showChat = (isOwner || isAcceptedCraftsman) && showTimeline
+  const needsRating = request.status === 'تم الإنجاز' && !alreadyRated && (isOwner || isAcceptedCraftsman)
+  const ratedUserId = isOwner ? request.craftsmanId : request.customerId
+  const ratedUserRole = isOwner ? 'craftsman' : 'customer'
 
   return (
     <div className="p-4">
@@ -229,6 +237,15 @@ const RequestDetails = ({ requestId, onBack, profile }) => {
 
         {showChat && <Chat requestId={requestId} />}
       </div>
+
+      {needsRating && (
+        <RatingModal
+          requestId={requestId}
+          ratedUserId={ratedUserId}
+          ratedUserRole={ratedUserRole}
+          onDone={() => setAlreadyRated(true)}
+        />
+      )}
     </div>
   )
 }
