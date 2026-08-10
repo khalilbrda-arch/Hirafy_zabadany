@@ -1,21 +1,11 @@
 import { useState, useEffect } from 'react'
 import { db, auth } from '../firebase'
-import { doc, getDoc, collection, addDoc, serverTimestamp, query, where, onSnapshot, updateDoc, writeBatch } from 'firebase/firestore'
+import { doc, addDoc, serverTimestamp, collection, query, where, onSnapshot, updateDoc, writeBatch } from 'firebase/firestore'
+import Timeline from '../components/Timeline'
+import Chat from '../components/Chat'
 
-const OffersList = ({ requestId, isOwner, requestStatus, onOfferAccepted }) => {
-  const [offers, setOffers] = useState([])
-  const [loading, setLoading] = useState(true)
+const OffersList = ({ requestId, isOwner, requestStatus, offers }) => {
   const [accepting, setAccepting] = useState(false)
-
-  useEffect(() => {
-    const q = query(collection(db, 'offers'), where('requestId', '==', requestId))
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const data = snapshot.docs.map((d) => ({ id: d.id, ...d.data() }))
-      setOffers(data)
-      setLoading(false)
-    })
-    return () => unsubscribe()
-  }, [requestId])
 
   const handleAccept = async (offer) => {
     setAccepting(true)
@@ -32,15 +22,10 @@ const OffersList = ({ requestId, isOwner, requestStatus, onOfferAccepted }) => {
 
       offers.forEach((o) => {
         const offerRef = doc(db, 'offers', o.id)
-        if (o.id === offer.id) {
-          batch.update(offerRef, { status: 'مقبول' })
-        } else {
-          batch.update(offerRef, { status: 'مرفوض' })
-        }
+        batch.update(offerRef, { status: o.id === offer.id ? 'مقبول' : 'مرفوض' })
       })
 
       await batch.commit()
-      onOfferAccepted()
     } catch (err) {
       console.error(err)
     } finally {
@@ -49,7 +34,6 @@ const OffersList = ({ requestId, isOwner, requestStatus, onOfferAccepted }) => {
   }
 
   if (!isOwner) return null
-  if (loading) return <p className="text-dark-text/60 text-sm mt-4">جاري تحميل العروض...</p>
   if (offers.length === 0) return <p className="text-dark-text/60 text-sm mt-4">لا توجد عروض بعد</p>
 
   return (
@@ -94,12 +78,10 @@ const OfferForm = ({ requestId, profile }) => {
   const handleSubmitOffer = async (e) => {
     e.preventDefault()
     setError('')
-
     if (!price.trim()) {
       setError('يرجى إدخال السعر المقترح')
       return
     }
-
     setSubmitting(true)
     try {
       await addDoc(collection(db, 'offers'), {
@@ -131,9 +113,7 @@ const OfferForm = ({ requestId, profile }) => {
   return (
     <form onSubmit={handleSubmitOffer} className="space-y-3 border-t border-warm-gray pt-4 mt-4">
       <h3 className="font-medium text-dark-text">تقديم عرض سعر</h3>
-      {error && (
-        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl text-sm">{error}</div>
-      )}
+      {error && <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl text-sm">{error}</div>}
       <div>
         <label className="block text-sm font-medium mb-1 text-dark-text">السعر المقترح</label>
         <input
@@ -166,6 +146,7 @@ const OfferForm = ({ requestId, profile }) => {
 
 const RequestDetails = ({ requestId, onBack, profile }) => {
   const [request, setRequest] = useState(null)
+  const [offers, setOffers] = useState([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -178,6 +159,26 @@ const RequestDetails = ({ requestId, onBack, profile }) => {
     return () => unsubscribe()
   }, [requestId])
 
+  useEffect(() => {
+    const q = query(collection(db, 'offers'), where('requestId', '==', requestId))
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      setOffers(snapshot.docs.map((d) => ({ id: d.id, ...d.data() })))
+    })
+    return () => unsubscribe()
+  }, [requestId])
+
+  const handleAdvanceStage = async (nextStage) => {
+    try {
+      const updates = { stage: nextStage }
+      if (nextStage === 'تم الإنجاز') {
+        updates.status = 'تم الإنجاز'
+      }
+      await updateDoc(doc(db, 'requests', requestId), updates)
+    } catch (err) {
+      console.error(err)
+    }
+  }
+
   if (loading) {
     return <div className="p-6 text-center"><p className="text-dark-text/60">جاري التحميل...</p></div>
   }
@@ -187,8 +188,11 @@ const RequestDetails = ({ requestId, onBack, profile }) => {
   }
 
   const isOwner = request.customerId === auth.currentUser.uid
+  const isAcceptedCraftsman = request.craftsmanId === auth.currentUser.uid
   const isCraftsman = profile?.accountType === 'craftsman'
   const canOffer = isCraftsman && !isOwner && request.status === 'منشور'
+  const showTimeline = request.status === 'قيد التنفيذ' || request.status === 'تم الإنجاز'
+  const showChat = (isOwner || isAcceptedCraftsman) && showTimeline
 
   return (
     <div className="p-4">
@@ -211,14 +215,19 @@ const RequestDetails = ({ requestId, onBack, profile }) => {
           </div>
         )}
 
+        {showTimeline && (
+          <Timeline
+            currentStage={request.stage || 'تم الاختيار'}
+            isCraftsman={isAcceptedCraftsman}
+            onAdvance={handleAdvanceStage}
+          />
+        )}
+
         {canOffer && <OfferForm requestId={requestId} profile={profile} />}
 
-        <OffersList
-          requestId={requestId}
-          isOwner={isOwner}
-          requestStatus={request.status}
-          onOfferAccepted={() => {}}
-        />
+        <OffersList requestId={requestId} isOwner={isOwner} requestStatus={request.status} offers={offers} />
+
+        {showChat && <Chat requestId={requestId} />}
       </div>
     </div>
   )
