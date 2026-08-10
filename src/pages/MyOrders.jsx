@@ -10,7 +10,7 @@ const statusColors = {
   'منتهي الصلاحية': 'bg-gray-50 text-gray-500 border-gray-200',
 }
 
-const MyOrders = () => {
+const MyOrders = ({ onOpenRequest }) => {
   const [orders, setOrders] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -40,19 +40,11 @@ const MyOrders = () => {
   }, [])
 
   if (loading) {
-    return (
-      <div className="p-6 text-center">
-        <p className="text-dark-text/60">جاري التحميل...</p>
-      </div>
-    )
+    return <div className="p-6 text-center"><p className="text-dark-text/60">جاري التحميل...</p></div>
   }
 
   if (error) {
-    return (
-      <div className="p-6 text-center">
-        <p className="text-red-600 text-sm">خطأ: {error}</p>
-      </div>
-    )
+    return <div className="p-6 text-center"><p className="text-red-600 text-sm">خطأ: {error}</p></div>
   }
 
   if (orders.length === 0) {
@@ -69,7 +61,11 @@ const MyOrders = () => {
       <h2 className="text-xl font-medium mb-4 text-center">طلباتي</h2>
       <div className="space-y-3">
         {orders.map((order) => (
-          <div key={order.id} className="bg-card-bg rounded-2xl shadow-sm p-4">
+          <div
+            key={order.id}
+            onClick={() => onOpenRequest(order.id)}
+            className="bg-card-bg rounded-2xl shadow-sm p-4 cursor-pointer active:opacity-80"
+          >
             <div className="flex justify-between items-start mb-2">
               <h3 className="font-medium text-dark-text">{order.specialization}</h3>
               <span className={`text-xs px-2 py-1 rounded-full border ${statusColors[order.status] || 'bg-gray-50 text-gray-500 border-gray-200'}`}>
