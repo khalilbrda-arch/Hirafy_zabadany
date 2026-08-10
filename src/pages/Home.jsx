@@ -1,11 +1,11 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { db, auth } from '../firebase'
-import { collection, addDoc, serverTimestamp } from 'firebase/firestore'
+import { collection, addDoc, serverTimestamp, query, where, onSnapshot } from 'firebase/firestore'
 import { specializations } from '../data/specializations'
 import { areas } from '../data/areas'
 import { uploadImage } from '../uploadImage'
 
-const Home = () => {
+const CustomerHome = () => {
   const [showForm, setShowForm] = useState(false)
   const [specialization, setSpecialization] = useState('')
   const [description, setDescription] = useState('')
@@ -201,6 +201,83 @@ const Home = () => {
       </div>
     </div>
   )
+}
+
+const CraftsmanHome = ({ profile, onOpenRequest }) => {
+  const [requests, setRequests] = useState([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    const q = query(
+      collection(db, 'requests'),
+      where('status', '==', 'منشور')
+    )
+
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const data = snapshot.docs
+        .map((doc) => ({ id: doc.id, ...doc.data() }))
+        .filter((r) =>
+          profile?.specializations?.includes(r.specialization) &&
+          profile?.areas?.includes(r.area)
+        )
+      setRequests(data)
+      setLoading(false)
+    }, (err) => {
+      console.error(err)
+      setLoading(false)
+    })
+
+    return () => unsubscribe()
+  }, [profile])
+
+  if (loading) {
+    return (
+      <div className="p-6 text-center">
+        <p className="text-dark-text/60">جاري التحميل...</p>
+      </div>
+    )
+  }
+
+  if (requests.length === 0) {
+    return (
+      <div className="p-6 text-center">
+        <h2 className="text-xl font-medium">الطلبات المتاحة</h2>
+        <p className="text-dark-text/70 mt-2">لا توجد طلبات مطابقة لتخصصك ومنطقتك حالياً</p>
+      </div>
+    )
+  }
+
+  return (
+    <div className="p-4">
+      <h2 className="text-xl font-medium mb-4 text-center">الطلبات المتاحة</h2>
+      <div className="space-y-3">
+        {requests.map((r) => (
+          <div
+            key={r.id}
+            onClick={() => onOpenRequest(r.id)}
+            className="bg-card-bg rounded-2xl shadow-sm p-4 cursor-pointer active:opacity-80"
+          >
+            <div className="flex justify-between items-start mb-2">
+              <h3 className="font-medium text-dark-text">{r.specialization}</h3>
+              <span>{r.urgency === 'طارئ' ? '🔴 طارئ' : '🟢 عادي'}</span>
+            </div>
+            <p className="text-sm text-dark-text/70 line-clamp-2">{r.description}</p>
+            {r.images?.[0] && (
+              <img src={r.images[0]} alt="" className="w-full h-32 object-cover rounded-xl mt-2" />
+            )}
+            <div className="text-xs text-dark-text/60 mt-2">📍 {r.area}</div>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+const Home = ({ profile, onOpenRequest }) => {
+  if (profile?.accountType === 'craftsman') {
+    return <CraftsmanHome profile={profile} onOpenRequest={onOpenRequest} />
+  }
+  return <CustomerHome />
 }
 
 export default Home
