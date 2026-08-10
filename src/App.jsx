@@ -10,6 +10,8 @@ import Profile from './pages/Profile'
 import CraftsmanSetup from './pages/CraftsmanSetup'
 import RequestDetails from './pages/RequestDetails'
 
+const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms))
+
 function App() {
   const [user, setUser] = useState(null)
   const [profile, setProfile] = useState(null)
@@ -21,7 +23,13 @@ function App() {
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       setUser(firebaseUser)
       if (firebaseUser) {
-        const snap = await getDoc(doc(db, 'profiles', firebaseUser.uid))
+        let snap = await getDoc(doc(db, 'profiles', firebaseUser.uid))
+        let attempts = 0
+        while (!snap.exists() && attempts < 5) {
+          await wait(500)
+          snap = await getDoc(doc(db, 'profiles', firebaseUser.uid))
+          attempts++
+        }
         if (snap.exists()) {
           setProfile(snap.data())
         }
@@ -32,15 +40,6 @@ function App() {
     })
     return () => unsubscribe()
   }, [])
-
-  const handleLoginSuccess = async () => {
-    if (auth.currentUser) {
-      const snap = await getDoc(doc(db, 'profiles', auth.currentUser.uid))
-      if (snap.exists()) {
-        setProfile(snap.data())
-      }
-    }
-  }
 
   const handleSetupComplete = (updatedProfile) => {
     setProfile((prev) => ({ ...prev, ...updatedProfile }))
@@ -63,7 +62,7 @@ function App() {
   }
 
   if (!user) {
-    return <LoginRegister onLoginSuccess={handleLoginSuccess} />
+    return <LoginRegister onLoginSuccess={() => {}} />
   }
 
   if (profile?.accountType === 'craftsman' && (!profile.specializations || profile.specializations.length === 0)) {
