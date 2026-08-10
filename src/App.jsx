@@ -85,7 +85,7 @@ function App() {
       case 'home':
         return <Home profile={profile} onOpenRequest={openRequestDetails} />
       case 'orders':
-        return <MyOrders />
+        return <MyOrders onOpenRequest={openRequestDetails} />
       case 'profile':
         return <Profile />
       default:
