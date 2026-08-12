@@ -1,12 +1,14 @@
 import { useState, useEffect } from 'react'
 import { db, auth } from '../firebase'
-import { doc, addDoc, serverTimestamp, collection, query, where, onSnapshot, updateDoc, writeBatch, getDocs } from 'firebase/firestore'
+import { doc, addDoc, serverTimestamp, collection, query, where, onSnapshot, updateDoc, deleteDoc, writeBatch, getDocs } from 'firebase/firestore'
 import Timeline from '../components/Timeline'
 import Chat from '../components/Chat'
 import RatingModal from '../components/RatingModal'
+import ReportButton from '../components/ReportButton'
 
-const OffersList = ({ requestId, isOwner, requestStatus, offers }) => {
+const OffersList = ({ requestId, isOwner, requestStatus, offers, profile }) => {
   const [accepting, setAccepting] = useState(false)
+  const [withdrawing, setWithdrawing] = useState(false)
 
   const handleAccept = async (offer) => {
     setAccepting(true)
@@ -31,13 +33,27 @@ const OffersList = ({ requestId, isOwner, requestStatus, offers }) => {
     }
   }
 
-  if (!isOwner) return null
-  if (offers.length === 0) return <p className="text-dark-text/60 text-sm mt-4">لا توجد عروض بعد</p>
+  const handleWithdraw = async (offerId) => {
+    setWithdrawing(true)
+    try {
+      await deleteDoc(doc(db, 'offers', offerId))
+    } catch (err) {
+      console.error(err)
+    } finally {
+      setWithdrawing(false)
+    }
+  }
+
+  const myOffer = offers.find((o) => o.craftsmanId === auth.currentUser.uid)
 
   return (
     <div className="mt-4 space-y-3">
-      <h3 className="font-medium text-dark-text">العروض المقدّمة ({offers.length})</h3>
-      {offers.map((offer) => (
+      {isOwner && offers.length > 0 && (
+        <h3 className="font-medium text-dark-text">العروض المقدّمة ({offers.length})</h3>
+      )}
+      {isOwner && offers.length === 0 && <p className="text-dark-text/60 text-sm">لا توجد عروض بعد</p>}
+
+      {isOwner && offers.map((offer) => (
         <div key={offer.id} className="border border-warm-gray rounded-xl p-4 bg-white">
           <div className="flex justify-between items-start mb-1">
             <span className="font-medium text-dark-text">{offer.craftsmanName}</span>
@@ -61,6 +77,19 @@ const OffersList = ({ requestId, isOwner, requestStatus, offers }) => {
           )}
         </div>
       ))}
+
+      {!isOwner && myOffer && myOffer.status === 'قيد الانتظار' && requestStatus === 'منشور' && (
+        <div className="border border-warm-gray rounded-xl p-4 bg-white">
+          <p className="text-sm text-dark-text/70 mb-2">عرضك: {myOffer.price} ل.س</p>
+          <button
+            onClick={() => handleWithdraw(myOffer.id)}
+            disabled={withdrawing}
+            className="w-full py-2 rounded-xl font-medium border border-red-300 text-red-600 hover:bg-red-50 transition-colors disabled:opacity-60"
+          >
+            {withdrawing ? 'جاري السحب...' : 'سحب العرض'}
+          </button>
+        </div>
+      )}
     </div>
   )
 }
@@ -143,6 +172,7 @@ const RequestDetails = ({ requestId, onBack, profile }) => {
   const [loading, setLoading] = useState(true)
   const [showRating, setShowRating] = useState(false)
   const [alreadyRated, setAlreadyRated] = useState(false)
+  const [cancelling, setCancelling] = useState(false)
 
   useEffect(() => {
     const unsubscribe = onSnapshot(doc(db, 'requests', requestId), (snap) => {
@@ -184,6 +214,17 @@ const RequestDetails = ({ requestId, onBack, profile }) => {
     }
   }
 
+  const handleCancel = async () => {
+    setCancelling(true)
+    try {
+      await updateDoc(doc(db, 'requests', requestId), { status: 'ملغى' })
+    } catch (err) {
+      console.error(err)
+    } finally {
+      setCancelling(false)
+    }
+  }
+
   if (loading) {
     return <div className="p-6 text-center"><p className="text-dark-text/60">جاري التحميل...</p></div>
   }
@@ -201,6 +242,7 @@ const RequestDetails = ({ requestId, onBack, profile }) => {
   const needsRating = request.status === 'تم الإنجاز' && !alreadyRated && (isOwner || isAcceptedCraftsman)
   const ratedUserId = isOwner ? request.craftsmanId : request.customerId
   const ratedUserRole = isOwner ? 'craftsman' : 'customer'
+  const canCancel = isOwner && request.status === 'منشور'
 
   return (
     <div className="p-4">
@@ -223,6 +265,16 @@ const RequestDetails = ({ requestId, onBack, profile }) => {
           </div>
         )}
 
+        {canCancel && (
+          <button
+            onClick={handleCancel}
+            disabled={cancelling}
+            className="w-full mb-3 py-2.5 rounded-xl font-medium border border-red-300 text-red-600 hover:bg-red-50 transition-colors disabled:opacity-60"
+          >
+            {cancelling ? 'جاري الإلغاء...' : 'إلغاء الطلب'}
+          </button>
+        )}
+
         {showTimeline && (
           <Timeline
             currentStage={request.stage || 'تم الاختيار'}
@@ -233,9 +285,13 @@ const RequestDetails = ({ requestId, onBack, profile }) => {
 
         {canOffer && <OfferForm requestId={requestId} profile={profile} />}
 
-        <OffersList requestId={requestId} isOwner={isOwner} requestStatus={request.status} offers={offers} />
+        <OffersList requestId={requestId} isOwner={isOwner} requestStatus={request.status} offers={offers} profile={profile} />
 
         {showChat && <Chat requestId={requestId} />}
+
+        {(isOwner || isAcceptedCraftsman) && showTimeline && (
+          <ReportButton requestId={requestId} />
+        )}
       </div>
 
       {needsRating && (
