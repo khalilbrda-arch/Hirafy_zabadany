@@ -6,7 +6,7 @@ import Chat from '../components/Chat'
 import RatingModal from '../components/RatingModal'
 import ReportButton from '../components/ReportButton'
 
-const OffersList = ({ requestId, isOwner, requestStatus, offers, profile }) => {
+const OffersList = ({ requestId, isOwner, requestStatus, offers }) => {
   const [accepting, setAccepting] = useState(false)
   const [withdrawing, setWithdrawing] = useState(false)
 
@@ -170,7 +170,6 @@ const RequestDetails = ({ requestId, onBack, profile }) => {
   const [request, setRequest] = useState(null)
   const [offers, setOffers] = useState([])
   const [loading, setLoading] = useState(true)
-  const [showRating, setShowRating] = useState(false)
   const [alreadyRated, setAlreadyRated] = useState(false)
   const [cancelling, setCancelling] = useState(false)
 
@@ -253,6 +252,13 @@ const RequestDetails = ({ requestId, onBack, profile }) => {
           <h2 className="text-xl font-medium">{request.specialization}</h2>
           <span className="text-xs px-2 py-1 rounded-full bg-blue-50 text-blue-700 border border-blue-200">{request.status}</span>
         </div>
+
+        {request.status === 'منتهي الصلاحية' && (
+          <div className="bg-yellow-50 border border-yellow-200 text-yellow-800 px-4 py-3 rounded-xl mb-3 text-sm">
+            انتهت صلاحية هذا الطلب. يمكنك إعادة نشره من صفحة "طلباتي".
+          </div>
+        )}
+
         <p className="text-dark-text/80 mb-3">{request.description}</p>
         <p className="text-sm text-dark-text/60 mb-1">📍 {request.area}</p>
         <p className="text-sm text-dark-text/60 mb-3">{request.urgency === 'طارئ' ? '🔴 طارئ' : '🟢 عادي'}</p>
@@ -285,7 +291,7 @@ const RequestDetails = ({ requestId, onBack, profile }) => {
 
         {canOffer && <OfferForm requestId={requestId} profile={profile} />}
 
-        <OffersList requestId={requestId} isOwner={isOwner} requestStatus={request.status} offers={offers} profile={profile} />
+        <OffersList requestId={requestId} isOwner={isOwner} requestStatus={request.status} offers={offers} />
 
         {showChat && <Chat requestId={requestId} />}
 
