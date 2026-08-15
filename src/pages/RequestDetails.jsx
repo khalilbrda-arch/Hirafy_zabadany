@@ -1,10 +1,20 @@
 import { useState, useEffect } from 'react'
 import { db, auth } from '../firebase'
-import { doc, addDoc, serverTimestamp, collection, query, where, onSnapshot, updateDoc, deleteDoc, writeBatch, getDocs } from 'firebase/firestore'
+import { doc, addDoc, serverTimestamp, collection, query, where, onSnapshot, updateDoc, deleteDoc, writeBatch, getDocs, getDoc, Timestamp } from 'firebase/firestore'
 import Timeline from '../components/Timeline'
 import Chat from '../components/Chat'
 import RatingModal from '../components/RatingModal'
 import ReportButton from '../components/ReportButton'
+
+const Stars = ({ rating }) => {
+  const rounded = Math.round(rating || 0)
+  return (
+    <span className="text-copper text-sm">
+      {'★'.repeat(rounded)}{'☆'.repeat(5 - rounded)}
+      <span className="text-dark-text/50 text-xs mr-1">({(rating || 0).toFixed(1)})</span>
+    </span>
+  )
+}
 
 const OffersList = ({ requestId, isOwner, requestStatus, offers }) => {
   const [accepting, setAccepting] = useState(false)
@@ -56,10 +66,13 @@ const OffersList = ({ requestId, isOwner, requestStatus, offers }) => {
       {isOwner && offers.map((offer) => (
         <div key={offer.id} className="border border-warm-gray rounded-xl p-4 bg-white">
           <div className="flex justify-between items-start mb-1">
-            <span className="font-medium text-dark-text">{offer.craftsmanName}</span>
+            <div>
+              <span className="font-medium text-dark-text block">{offer.craftsmanName}</span>
+              <Stars rating={offer.craftsmanRating} />
+            </div>
             <span className="text-copper font-medium">{offer.price} ل.س</span>
           </div>
-          {offer.message && <p className="text-sm text-dark-text/70 mb-2">{offer.message}</p>}
+          {offer.message && <p className="text-sm text-dark-text/70 mb-2 mt-2">{offer.message}</p>}
           <span className={`text-xs px-2 py-1 rounded-full ${
             offer.status === 'مقبول' ? 'bg-green-50 text-green-700' :
             offer.status === 'مرفوض' ? 'bg-gray-50 text-gray-500' : 'bg-blue-50 text-blue-700'
@@ -101,6 +114,17 @@ const OfferForm = ({ requestId, profile }) => {
   const [error, setError] = useState('')
   const [success, setSuccess] = useState(false)
 
+  const checkRateLimit = async () => {
+    const oneHourAgo = Timestamp.fromMillis(Date.now() - 60 * 60 * 1000)
+    const q = query(
+      collection(db, 'offers'),
+      where('craftsmanId', '==', auth.currentUser.uid),
+      where('createdAt', '>', oneHourAgo)
+    )
+    const snap = await getDocs(q)
+    return snap.size
+  }
+
   const handleSubmitOffer = async (e) => {
     e.preventDefault()
     setError('')
@@ -110,10 +134,21 @@ const OfferForm = ({ requestId, profile }) => {
     }
     setSubmitting(true)
     try {
+      const recentCount = await checkRateLimit()
+      if (recentCount >= 10) {
+        setError('لقد وصلت للحد الأقصى (10 عروض بالساعة)، حاول لاحقاً')
+        setSubmitting(false)
+        return
+      }
+
+      const profileSnap = await getDoc(doc(db, 'profiles', auth.currentUser.uid))
+      const craftsmanRating = profileSnap.exists() ? (profileSnap.data().rating || 0) : 0
+
       await addDoc(collection(db, 'offers'), {
         requestId,
         craftsmanId: auth.currentUser.uid,
         craftsmanName: profile.fullName,
+        craftsmanRating,
         price,
         message,
         status: 'قيد الانتظار',
