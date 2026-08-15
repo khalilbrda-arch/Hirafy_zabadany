@@ -10,6 +10,9 @@ const statusColors = {
   'منتهي الصلاحية': 'bg-gray-50 text-gray-500 border-gray-200',
 }
 
+const activeStatuses = ['منشور', 'قيد التنفيذ']
+const historyStatuses = ['تم الإنجاز', 'ملغى', 'منتهي الصلاحية']
+
 const OrderCard = ({ order, onOpenRequest }) => {
   const [republishing, setRepublishing] = useState(false)
 
@@ -65,6 +68,7 @@ const MyOrders = ({ onOpenRequest }) => {
   const [orders, setOrders] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const [tab, setTab] = useState('active')
 
   useEffect(() => {
     if (!auth.currentUser) {
@@ -84,23 +88,45 @@ const MyOrders = ({ onOpenRequest }) => {
 
   if (loading) return <div className="p-6 text-center"><p className="text-dark-text/60">جاري التحميل...</p></div>
   if (error) return <div className="p-6 text-center"><p className="text-red-600 text-sm">خطأ: {error}</p></div>
-  if (orders.length === 0) {
-    return (
-      <div className="p-6 text-center">
-        <h2 className="text-2xl font-medium">طلباتي</h2>
-        <p className="text-dark-text/70 mt-2">لا توجد طلبات حالياً</p>
-      </div>
-    )
-  }
+
+  const filteredOrders = orders.filter((o) =>
+    tab === 'active' ? activeStatuses.includes(o.status) : historyStatuses.includes(o.status)
+  )
 
   return (
     <div className="p-4">
       <h2 className="text-xl font-medium mb-4 text-center">طلباتي</h2>
-      <div className="space-y-3">
-        {orders.map((order) => (
-          <OrderCard key={order.id} order={order} onOpenRequest={onOpenRequest} />
-        ))}
+
+      <div className="flex gap-2 mb-4">
+        <button
+          onClick={() => setTab('active')}
+          className={`flex-1 py-2 rounded-xl text-sm font-medium transition-colors ${
+            tab === 'active' ? 'bg-copper text-white' : 'bg-white text-dark-text border border-warm-gray'
+          }`}
+        >
+          النشطة
+        </button>
+        <button
+          onClick={() => setTab('history')}
+          className={`flex-1 py-2 rounded-xl text-sm font-medium transition-colors ${
+            tab === 'history' ? 'bg-copper text-white' : 'bg-white text-dark-text border border-warm-gray'
+          }`}
+        >
+          السجل
+        </button>
       </div>
+
+      {filteredOrders.length === 0 ? (
+        <p className="text-dark-text/70 text-center mt-6">
+          {tab === 'active' ? 'لا توجد طلبات نشطة حالياً' : 'لا يوجد سجل طلبات سابقة'}
+        </p>
+      ) : (
+        <div className="space-y-3">
+          {filteredOrders.map((order) => (
+            <OrderCard key={order.id} order={order} onOpenRequest={onOpenRequest} />
+          ))}
+        </div>
+      )}
     </div>
   )
 }
