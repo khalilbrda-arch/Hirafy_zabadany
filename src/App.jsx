@@ -9,6 +9,7 @@ import MyOrders from './pages/MyOrders'
 import Profile from './pages/Profile'
 import CraftsmanSetup from './pages/CraftsmanSetup'
 import RequestDetails from './pages/RequestDetails'
+import NotificationSetup from './components/NotificationSetup'
 
 const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms))
 
@@ -72,6 +73,7 @@ function App() {
   if (selectedRequestId) {
     return (
       <div className="min-h-screen bg-primary-bg text-dark-text flex flex-col" dir="rtl">
+        <NotificationSetup />
         <main className="flex-1 pb-20">
           <RequestDetails requestId={selectedRequestId} onBack={closeRequestDetails} profile={profile} />
         </main>
@@ -95,6 +97,7 @@ function App() {
 
   return (
     <div className="min-h-screen bg-primary-bg text-dark-text flex flex-col" dir="rtl">
+      <NotificationSetup />
       <main className="flex-1 pb-20">
         {renderPage()}
       </main>
