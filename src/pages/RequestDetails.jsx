@@ -16,7 +16,7 @@ const Stars = ({ rating }) => {
   )
 }
 
-const OffersList = ({ requestId, isOwner, requestStatus, offers }) => {
+const OffersList = ({ requestId, isOwner, requestStatus, offers, onOpenCraftsmanProfile }) => {
   const [accepting, setAccepting] = useState(false)
   const [withdrawing, setWithdrawing] = useState(false)
 
@@ -66,10 +66,13 @@ const OffersList = ({ requestId, isOwner, requestStatus, offers }) => {
       {isOwner && offers.map((offer) => (
         <div key={offer.id} className="border border-warm-gray rounded-xl p-4 bg-white">
           <div className="flex justify-between items-start mb-1">
-            <div>
-              <span className="font-medium text-dark-text block">{offer.craftsmanName}</span>
+            <button
+              onClick={() => onOpenCraftsmanProfile(offer.craftsmanId)}
+              className="text-right"
+            >
+              <span className="font-medium text-dark-text block underline">{offer.craftsmanName}</span>
               <Stars rating={offer.craftsmanRating} />
-            </div>
+            </button>
             <span className="text-copper font-medium">{offer.price} ل.س</span>
           </div>
           {offer.message && <p className="text-sm text-dark-text/70 mb-2 mt-2">{offer.message}</p>}
@@ -201,7 +204,7 @@ const OfferForm = ({ requestId, profile }) => {
   )
 }
 
-const RequestDetails = ({ requestId, onBack, profile }) => {
+const RequestDetails = ({ requestId, onBack, profile, onOpenCraftsmanProfile }) => {
   const [request, setRequest] = useState(null)
   const [offers, setOffers] = useState([])
   const [loading, setLoading] = useState(true)
@@ -326,7 +329,13 @@ const RequestDetails = ({ requestId, onBack, profile }) => {
 
         {canOffer && <OfferForm requestId={requestId} profile={profile} />}
 
-        <OffersList requestId={requestId} isOwner={isOwner} requestStatus={request.status} offers={offers} />
+        <OffersList
+          requestId={requestId}
+          isOwner={isOwner}
+          requestStatus={request.status}
+          offers={offers}
+          onOpenCraftsmanProfile={onOpenCraftsmanProfile}
+        />
 
         {showChat && <Chat requestId={requestId} />}
 
