@@ -9,6 +9,7 @@ import MyOrders from './pages/MyOrders'
 import Profile from './pages/Profile'
 import CraftsmanSetup from './pages/CraftsmanSetup'
 import RequestDetails from './pages/RequestDetails'
+import CraftsmanProfile from './pages/CraftsmanProfile'
 import NotificationSetup from './components/NotificationSetup'
 
 const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms))
@@ -19,6 +20,7 @@ function App() {
   const [loadingProfile, setLoadingProfile] = useState(true)
   const [currentPage, setCurrentPage] = useState('home')
   const [selectedRequestId, setSelectedRequestId] = useState(null)
+  const [viewingCraftsmanId, setViewingCraftsmanId] = useState(null)
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
@@ -48,10 +50,19 @@ function App() {
 
   const openRequestDetails = (requestId) => {
     setSelectedRequestId(requestId)
+    setViewingCraftsmanId(null)
   }
 
   const closeRequestDetails = () => {
     setSelectedRequestId(null)
+  }
+
+  const openCraftsmanProfile = (craftsmanId) => {
+    setViewingCraftsmanId(craftsmanId)
+  }
+
+  const closeCraftsmanProfile = () => {
+    setViewingCraftsmanId(null)
   }
 
   if (loadingProfile) {
@@ -70,12 +81,29 @@ function App() {
     return <CraftsmanSetup onSetupComplete={handleSetupComplete} />
   }
 
+  if (viewingCraftsmanId) {
+    return (
+      <div className="min-h-screen bg-primary-bg text-dark-text flex flex-col" dir="rtl">
+        <NotificationSetup />
+        <main className="flex-1 pb-20">
+          <CraftsmanProfile craftsmanId={viewingCraftsmanId} onBack={closeCraftsmanProfile} />
+        </main>
+        <BottomNav currentPage={currentPage} setCurrentPage={(p) => { setCurrentPage(p); closeCraftsmanProfile() }} />
+      </div>
+    )
+  }
+
   if (selectedRequestId) {
     return (
       <div className="min-h-screen bg-primary-bg text-dark-text flex flex-col" dir="rtl">
         <NotificationSetup />
         <main className="flex-1 pb-20">
-          <RequestDetails requestId={selectedRequestId} onBack={closeRequestDetails} profile={profile} />
+          <RequestDetails
+            requestId={selectedRequestId}
+            onBack={closeRequestDetails}
+            profile={profile}
+            onOpenCraftsmanProfile={openCraftsmanProfile}
+          />
         </main>
         <BottomNav currentPage={currentPage} setCurrentPage={(p) => { setCurrentPage(p); closeRequestDetails() }} />
       </div>
