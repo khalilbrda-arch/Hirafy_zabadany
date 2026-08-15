@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { db, auth } from '../firebase'
-import { collection, addDoc, serverTimestamp, query, where, onSnapshot } from 'firebase/firestore'
+import { collection, addDoc, serverTimestamp, query, where, onSnapshot, getDocs, Timestamp } from 'firebase/firestore'
 import { specializations } from '../data/specializations'
 import { areas } from '../data/areas'
 import { uploadImage } from '../uploadImage'
@@ -19,6 +19,17 @@ const RequestForm = ({ onClose, onPublished }) => {
     setImages(Array.from(e.target.files))
   }
 
+  const checkRateLimit = async () => {
+    const oneHourAgo = Timestamp.fromMillis(Date.now() - 60 * 60 * 1000)
+    const q = query(
+      collection(db, 'requests'),
+      where('customerId', '==', auth.currentUser.uid),
+      where('createdAt', '>', oneHourAgo)
+    )
+    const snap = await getDocs(q)
+    return snap.size
+  }
+
   const handleSubmit = async (e) => {
     e.preventDefault()
     setError('')
@@ -30,6 +41,13 @@ const RequestForm = ({ onClose, onPublished }) => {
 
     setLoading(true)
     try {
+      const recentCount = await checkRateLimit()
+      if (recentCount >= 5) {
+        setError('لقد وصلت للحد الأقصى (5 طلبات بالساعة)، حاول لاحقاً')
+        setLoading(false)
+        return
+      }
+
       const imageUrls = []
       for (const file of images) {
         const url = await uploadImage(file)
@@ -108,7 +126,7 @@ const RequestForm = ({ onClose, onPublished }) => {
             <div>
               <label className="block text-sm font-medium mb-1 text-dark-text">الصور (اختياري)</label>
               <input type="file" accept="image/*" multiple onChange={handleImageChange} className="w-full text-sm" />
-              {images.length > 0 && <p className="text-xs text-dark-text/60 mt-1">{images.length} صورة مختارة</p>}
+              {images.length > 0 && <p className="text-xs text-dark-text/60 mt-1">{images.length} صورة مختارة (سيتم ضغطها تلقائياً)</p>}
             </div>
 
             <div>
