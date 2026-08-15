@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { db } from '../firebase'
-import { doc, getDoc, collection, query, where, orderBy, onSnapshot } from 'firebase/firestore'
+import { doc, getDoc, collection, query, where, onSnapshot } from 'firebase/firestore'
 
 const CraftsmanProfile = ({ craftsmanId, onBack }) => {
   const [profile, setProfile] = useState(null)
@@ -37,12 +37,28 @@ const CraftsmanProfile = ({ craftsmanId, onBack }) => {
       <button onClick={onBack} className="text-copper mb-4 font-medium">← رجوع</button>
 
       <div className="bg-card-bg rounded-2xl shadow-sm p-6">
-        <h2 className="text-xl font-medium text-center mb-1">{profile.fullName}</h2>
-        <p className="text-center text-copper mb-3">
-          {'★'.repeat(Math.round(profile.rating || 0))}{'☆'.repeat(5 - Math.round(profile.rating || 0))}
-          <span className="text-dark-text/60 text-sm mr-2">({(profile.rating || 0).toFixed(1)})</span>
-        </p>
-        <p className="text-center text-sm text-dark-text/60 mb-4">{profile.completedJobs || 0} عمل منجز</p>
+        <div className="flex flex-col items-center mb-4">
+          <div className="w-24 h-24 rounded-full bg-warm-gray overflow-hidden flex items-center justify-center">
+            {profile.photoURL ? (
+              <img src={profile.photoURL} alt="" className="w-full h-full object-cover" />
+            ) : (
+              <span className="text-3xl text-white">{profile.fullName?.charAt(0) || '؟'}</span>
+            )}
+          </div>
+          <h2 className="text-xl font-medium mt-3">{profile.fullName}</h2>
+          <p className="text-copper mt-1">
+            {'★'.repeat(Math.round(profile.rating || 0))}{'☆'.repeat(5 - Math.round(profile.rating || 0))}
+            <span className="text-dark-text/60 text-sm mr-2">({(profile.rating || 0).toFixed(1)})</span>
+          </p>
+          <p className="text-sm text-dark-text/60 mt-1">{profile.completedJobs || 0} عمل منجز</p>
+        </div>
+
+        {profile.bio && (
+          <div className="mb-4 border-t border-warm-gray pt-4">
+            <h3 className="text-sm font-medium text-dark-text mb-1">نبذة</h3>
+            <p className="text-sm text-dark-text/70">{profile.bio}</p>
+          </div>
+        )}
 
         <div className="mb-4">
           <h3 className="text-sm font-medium text-dark-text mb-2">التخصصات</h3>
@@ -61,6 +77,17 @@ const CraftsmanProfile = ({ craftsmanId, onBack }) => {
             ))}
           </div>
         </div>
+
+        {profile.portfolioImages?.length > 0 && (
+          <div className="mb-4 border-t border-warm-gray pt-4">
+            <h3 className="text-sm font-medium text-dark-text mb-2">معرض الأعمال</h3>
+            <div className="grid grid-cols-3 gap-2">
+              {profile.portfolioImages.map((url, i) => (
+                <img key={i} src={url} alt="" className="w-full h-20 object-cover rounded-lg" />
+              ))}
+            </div>
+          </div>
+        )}
 
         <div className="border-t border-warm-gray pt-4">
           <h3 className="text-sm font-medium text-dark-text mb-2">آخر التقييمات</h3>
