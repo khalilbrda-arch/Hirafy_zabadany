@@ -9,6 +9,7 @@ const BrowseCraftsmen = ({ onOpenCraftsmanProfile }) => {
   const [loading, setLoading] = useState(true)
   const [filterSpec, setFilterSpec] = useState('')
   const [filterArea, setFilterArea] = useState('')
+  const [sortBy, setSortBy] = useState('rating')
 
   useEffect(() => {
     const q = query(collection(db, 'profiles'), where('accountType', '==', 'craftsman'))
@@ -19,18 +20,25 @@ const BrowseCraftsmen = ({ onOpenCraftsmanProfile }) => {
     return () => unsubscribe()
   }, [])
 
-  const filtered = craftsmen.filter((c) => {
+  let filtered = craftsmen.filter((c) => {
     if (c.banned) return false
     if (filterSpec && !c.specializations?.includes(filterSpec)) return false
     if (filterArea && !c.areas?.includes(filterArea)) return false
     return true
   })
 
+  filtered = filtered.sort((a, b) => {
+    if (sortBy === 'rating') return (b.rating || 0) - (a.rating || 0)
+    if (sortBy === 'jobs') return (b.completedJobs || 0) - (a.completedJobs || 0)
+    return 0
+  })
+
   return (
     <div className="p-4">
-      <h2 className="text-xl font-medium text-center mb-4">تصفح الحرفيين</h2>
+      <h2 className="text-xl font-medium text-center mb-1">تصفح الحرفيين</h2>
+      <p className="text-sm text-dark-text/60 text-center mb-4">{craftsmen.length} حرفي مسجّل بالمنصة</p>
 
-      <div className="flex gap-2 mb-4">
+      <div className="flex gap-2 mb-2">
         <select
           value={filterSpec}
           onChange={(e) => setFilterSpec(e.target.value)}
@@ -53,10 +61,31 @@ const BrowseCraftsmen = ({ onOpenCraftsmanProfile }) => {
         </select>
       </div>
 
+      <div className="flex gap-2 mb-4">
+        <button
+          onClick={() => setSortBy('rating')}
+          className={`flex-1 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+            sortBy === 'rating' ? 'bg-copper text-white' : 'bg-white text-dark-text border border-warm-gray'
+          }`}
+        >
+          الأعلى تقييماً
+        </button>
+        <button
+          onClick={() => setSortBy('jobs')}
+          className={`flex-1 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+            sortBy === 'jobs' ? 'bg-copper text-white' : 'bg-white text-dark-text border border-warm-gray'
+          }`}
+        >
+          الأكثر خبرة
+        </button>
+      </div>
+
       {loading ? (
         <p className="text-dark-text/60 text-center">جاري التحميل...</p>
       ) : filtered.length === 0 ? (
-        <p className="text-dark-text/60 text-center mt-6">لا يوجد حرفيون مطابقون</p>
+        <div className="bg-card-bg rounded-2xl shadow-sm p-6 text-center">
+          <p className="text-dark-text/60">لا يوجد حرفيون مطابقون لهذا الفلتر</p>
+        </div>
       ) : (
         <div className="space-y-3">
           {filtered.map((c) => (
@@ -72,18 +101,27 @@ const BrowseCraftsmen = ({ onOpenCraftsmanProfile }) => {
                   <span className="text-xl text-white">{c.fullName?.charAt(0) || '؟'}</span>
                 )}
               </div>
-              <div className="flex-1">
-                <p className="font-medium text-dark-text">{c.fullName}</p>
-                <p className="text-copper text-sm">
-                  {'★'.repeat(Math.round(c.rating || 0))}{'☆'.repeat(5 - Math.round(c.rating || 0))}
-                  <span className="text-dark-text/50 text-xs mr-1">({(c.rating || 0).toFixed(1)})</span>
-                </p>
-                <div className="flex flex-wrap gap-1 mt-1">
+              <div className="flex-1 min-w-0">
+                <p className="font-medium text-dark-text truncate">{c.fullName}</p>
+                <div className="flex items-center gap-2">
+                  <span className="text-copper text-sm">
+                    {'★'.repeat(Math.round(c.rating || 0))}{'☆'.repeat(5 - Math.round(c.rating || 0))}
+                  </span>
+                  <span className="text-dark-text/50 text-xs">({(c.rating || 0).toFixed(1)})</span>
+                  <span className="text-dark-text/40 text-xs">· {c.completedJobs || 0} عمل</span>
+                </div>
+                <div className="flex flex-wrap gap-1 mt-1.5">
                   {c.specializations?.slice(0, 3).map((s) => (
                     <span key={s} className="text-[10px] px-1.5 py-0.5 bg-copper/10 text-copper rounded-full">{s}</span>
                   ))}
+                  {c.specializations?.length > 3 && (
+                    <span className="text-[10px] px-1.5 py-0.5 bg-warm-gray/30 text-dark-text/60 rounded-full">
+                      +{c.specializations.length - 3}
+                    </span>
+                  )}
                 </div>
               </div>
+              <span className="text-warm-gray text-lg">←</span>
             </div>
           ))}
         </div>
