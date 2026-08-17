@@ -70,7 +70,7 @@ const RequestForm = ({ onClose, onPublished }) => {
         onPublished()
       }, 1500)
     } catch (err) {
-      setError('حدث خطأ أثناء نشر الطلب، حاول مرة أخرى')
+      setError('خطأ فعلي: ' + (err.message || String(err)))
       console.error(err)
     } finally {
       setLoading(false)
@@ -85,7 +85,7 @@ const RequestForm = ({ onClose, onPublished }) => {
         <h2 className="text-xl font-medium mb-4 text-center">نشر طلب خدمة</h2>
 
         {error && (
-          <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl mb-4 text-sm">
+          <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl mb-4 text-sm break-words">
             {error}
           </div>
         )}
