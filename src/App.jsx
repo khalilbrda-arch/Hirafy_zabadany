@@ -12,6 +12,7 @@ import RequestDetails from './pages/RequestDetails'
 import CraftsmanProfile from './pages/CraftsmanProfile'
 import BrowseCraftsmen from './pages/BrowseCraftsmen'
 import Favorites from './pages/Favorites'
+import Inbox from './pages/Inbox'
 import NotificationSetup from './components/NotificationSetup'
 
 const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms))
@@ -23,6 +24,7 @@ function App() {
   const [currentPage, setCurrentPage] = useState('home')
   const [selectedRequestId, setSelectedRequestId] = useState(null)
   const [viewingCraftsmanId, setViewingCraftsmanId] = useState(null)
+  const [showInbox, setShowInbox] = useState(false)
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
@@ -53,6 +55,7 @@ function App() {
   const openRequestDetails = (requestId) => {
     setSelectedRequestId(requestId)
     setViewingCraftsmanId(null)
+    setShowInbox(false)
   }
 
   const closeRequestDetails = () => {
@@ -112,6 +115,18 @@ function App() {
     )
   }
 
+  if (showInbox) {
+    return (
+      <div className="min-h-screen bg-primary-bg text-dark-text flex flex-col" dir="rtl">
+        <NotificationSetup />
+        <main className="flex-1 pb-20">
+          <Inbox onOpenRequest={openRequestDetails} />
+        </main>
+        <BottomNav currentPage={currentPage} setCurrentPage={(p) => { setCurrentPage(p); setShowInbox(false) }} />
+      </div>
+    )
+  }
+
   const renderPage = () => {
     switch (currentPage) {
       case 'home':
@@ -123,7 +138,7 @@ function App() {
       case 'favorites':
         return <Favorites onOpenCraftsmanProfile={openCraftsmanProfile} />
       case 'profile':
-        return <Profile />
+        return <Profile onOpenInbox={() => setShowInbox(true)} />
       default:
         return <Home profile={profile} onOpenRequest={openRequestDetails} />
     }
