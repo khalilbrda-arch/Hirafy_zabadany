@@ -11,6 +11,7 @@ import CraftsmanSetup from './pages/CraftsmanSetup'
 import RequestDetails from './pages/RequestDetails'
 import CraftsmanProfile from './pages/CraftsmanProfile'
 import BrowseCraftsmen from './pages/BrowseCraftsmen'
+import Favorites from './pages/Favorites'
 import NotificationSetup from './components/NotificationSetup'
 
 const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms))
@@ -119,6 +120,8 @@ function App() {
         return <MyOrders onOpenRequest={openRequestDetails} />
       case 'browse':
         return <BrowseCraftsmen onOpenCraftsmanProfile={openCraftsmanProfile} />
+      case 'favorites':
+        return <Favorites onOpenCraftsmanProfile={openCraftsmanProfile} />
       case 'profile':
         return <Profile />
       default:
