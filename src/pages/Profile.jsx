@@ -17,7 +17,7 @@ const Stars = ({ rating }) => {
   )
 }
 
-const Profile = () => {
+const Profile = ({ onOpenInbox }) => {
   const [profile, setProfile] = useState(null)
   const [loading, setLoading] = useState(true)
   const [view, setView] = useState('main')
@@ -118,7 +118,6 @@ const Profile = () => {
       <h2 className="text-xl font-medium text-center mb-4">حسابي</h2>
 
       <div className="bg-card-bg rounded-2xl shadow-sm p-6">
-        {/* الصورة الشخصية */}
         <div className="flex flex-col items-center mb-4">
           <div className="relative">
             <div className="w-24 h-24 rounded-full bg-warm-gray overflow-hidden flex items-center justify-center">
@@ -152,7 +151,6 @@ const Profile = () => {
           )}
         </div>
 
-        {/* التخصصات والمناطق للحرفي */}
         {isCraftsman && (
           <div className="mb-4">
             <div className="flex flex-wrap gap-1.5 justify-center mb-2">
@@ -168,7 +166,6 @@ const Profile = () => {
           </div>
         )}
 
-        {/* النبذة التعريفية */}
         <div className="border-t border-warm-gray pt-4 mb-4">
           <div className="flex justify-between items-center mb-2">
             <h3 className="text-sm font-medium text-dark-text">نبذة عني</h3>
@@ -206,7 +203,6 @@ const Profile = () => {
           )}
         </div>
 
-        {/* معرض الأعمال المنجزة للحرفي */}
         {isCraftsman && (
           <div className="border-t border-warm-gray pt-4 mb-4">
             <div className="flex justify-between items-center mb-2">
@@ -237,8 +233,11 @@ const Profile = () => {
           </div>
         )}
 
-        {/* الروابط */}
         <div className="border-t border-warm-gray pt-2">
+          <button onClick={onOpenInbox} className="w-full text-right py-2.5 border-b border-warm-gray text-dark-text flex justify-between items-center">
+            <span>💬</span>
+            <span className="flex-1 text-right mr-2">المحادثات</span>
+          </button>
           {profile?.isAdmin && (
             <button onClick={() => setView('admin')} className="w-full text-right py-2.5 border-b border-warm-gray text-dark-text">لوحة التحكم الإدارية</button>
           )}
