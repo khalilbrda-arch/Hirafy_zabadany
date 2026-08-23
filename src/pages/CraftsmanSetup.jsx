@@ -40,6 +40,7 @@ const CraftsmanSetup = ({ onSetupComplete }) => {
         areas: selectedAreas,
         rating: 0,
         completedJobs: 0,
+        available: true,
       }
       await updateDoc(doc(db, 'profiles', auth.currentUser.uid), updatedData)
       onSetupComplete(updatedData)
