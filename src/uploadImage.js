@@ -1,9 +1,10 @@
 import imageCompression from 'browser-image-compression'
 
-export async function uploadImage(file) {
+export async function uploadImage(file, onProgress) {
   let fileToUpload = file
 
   try {
+    if (onProgress) onProgress('جاري ضغط الصورة...')
     fileToUpload = await imageCompression(file, {
       maxSizeMB: 0.5,
       maxWidthOrHeight: 1280,
@@ -12,6 +13,8 @@ export async function uploadImage(file) {
   } catch (err) {
     console.error('فشل ضغط الصورة، سيتم رفعها بحجمها الأصلي', err)
   }
+
+  if (onProgress) onProgress('جاري الرفع...')
 
   const formData = new FormData()
   formData.append('file', fileToUpload)
@@ -30,5 +33,6 @@ export async function uploadImage(file) {
   }
 
   const data = await response.json()
+  if (onProgress) onProgress('تم الرفع بنجاح')
   return data.secure_url
 }
