@@ -1,6 +1,33 @@
 import { useState, useEffect } from 'react'
 import { db, auth } from '../firebase'
-import { collection, query, where, onSnapshot, or } from 'firebase/firestore'
+import { collection, query, where, onSnapshot, orderBy, limit } from 'firebase/firestore'
+
+const ConversationPreview = ({ requestId }) => {
+  const [lastMessage, setLastMessage] = useState(null)
+
+  useEffect(() => {
+    const q = query(
+      collection(db, 'requests', requestId, 'messages'),
+      orderBy('createdAt', 'desc'),
+      limit(1)
+    )
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      if (!snapshot.empty) {
+        setLastMessage(snapshot.docs[0].data())
+      }
+    })
+    return () => unsubscribe()
+  }, [requestId])
+
+  if (!lastMessage) return <p className="text-xs text-dark-text/50">لا توجد رسائل بعد</p>
+
+  const isMine = lastMessage.senderId === auth.currentUser.uid
+  return (
+    <p className="text-xs text-dark-text/60 truncate">
+      {isMine ? 'أنت: ' : ''}{lastMessage.text}
+    </p>
+  )
+}
 
 const Inbox = ({ onOpenRequest }) => {
   const [conversations, setConversations] = useState([])
@@ -73,12 +100,19 @@ const Inbox = ({ onOpenRequest }) => {
                   💬
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="font-medium text-dark-text truncate">{r.specialization}</p>
-                  <p className="text-xs text-dark-text/60">
-                    {isOwner ? 'محادثة مع الحرفي' : 'محادثة مع الزبون'} · {r.status}
+                  <div className="flex justify-between items-center">
+                    <p className="font-medium text-dark-text truncate">{r.specialization}</p>
+                    <span className={`text-[10px] px-2 py-0.5 rounded-full flex-shrink-0 ${
+                      r.status === 'تم الإنجاز' ? 'bg-green-50 text-green-700' : 'bg-yellow-50 text-yellow-700'
+                    }`}>
+                      {r.status}
+                    </span>
+                  </div>
+                  <p className="text-xs text-dark-text/50 mb-0.5">
+                    {isOwner ? 'محادثة مع الحرفي' : 'محادثة مع الزبون'}
                   </p>
+                  <ConversationPreview requestId={r.id} />
                 </div>
-                <span className="text-warm-gray">←</span>
               </div>
             )
           })}
