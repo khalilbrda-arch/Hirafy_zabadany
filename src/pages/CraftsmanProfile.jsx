@@ -1,11 +1,14 @@
 import { useState, useEffect } from 'react'
 import { db } from '../firebase'
 import { doc, getDoc, collection, query, where, onSnapshot } from 'firebase/firestore'
+import ImageLightbox from '../components/ImageLightbox'
+import LoadingSpinner from '../components/LoadingSpinner'
 
 const CraftsmanProfile = ({ craftsmanId, onBack }) => {
   const [profile, setProfile] = useState(null)
   const [ratings, setRatings] = useState([])
   const [loading, setLoading] = useState(true)
+  const [lightboxIndex, setLightboxIndex] = useState(null)
 
   useEffect(() => {
     const fetchProfile = async () => {
@@ -25,7 +28,7 @@ const CraftsmanProfile = ({ craftsmanId, onBack }) => {
   }, [craftsmanId])
 
   if (loading) {
-    return <div className="p-6 text-center"><p className="text-dark-text/60">جاري التحميل...</p></div>
+    return <LoadingSpinner text="جاري تحميل الملف الشخصي..." />
   }
 
   if (!profile) {
@@ -83,7 +86,13 @@ const CraftsmanProfile = ({ craftsmanId, onBack }) => {
             <h3 className="text-sm font-medium text-dark-text mb-2">معرض الأعمال</h3>
             <div className="grid grid-cols-3 gap-2">
               {profile.portfolioImages.map((url, i) => (
-                <img key={i} src={url} alt="" className="w-full h-20 object-cover rounded-lg" />
+                <img
+                  key={i}
+                  src={url}
+                  alt=""
+                  onClick={() => setLightboxIndex(i)}
+                  className="w-full h-20 object-cover rounded-lg cursor-pointer"
+                />
               ))}
             </div>
           </div>
@@ -105,6 +114,14 @@ const CraftsmanProfile = ({ craftsmanId, onBack }) => {
           )}
         </div>
       </div>
+
+      {lightboxIndex !== null && (
+        <ImageLightbox
+          images={profile.portfolioImages}
+          initialIndex={lightboxIndex}
+          onClose={() => setLightboxIndex(null)}
+        />
+      )}
     </div>
   )
 }
