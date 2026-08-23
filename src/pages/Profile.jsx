@@ -4,7 +4,10 @@ import { doc, getDoc, updateDoc, arrayUnion, arrayRemove } from 'firebase/firest
 import { signOut } from 'firebase/auth'
 import { uploadImage } from '../uploadImage'
 import AdminPanel from './AdminPanel'
+import Help from './Help'
 import PolicyModal from '../components/PolicyModal'
+import ImageLightbox from '../components/ImageLightbox'
+import LoadingSpinner from '../components/LoadingSpinner'
 import { privacyText } from '../data/privacyText'
 import { termsText } from '../data/termsText'
 
@@ -26,6 +29,7 @@ const Profile = ({ onOpenInbox }) => {
   const [savingBio, setSavingBio] = useState(false)
   const [uploadingPhoto, setUploadingPhoto] = useState(false)
   const [uploadingPortfolio, setUploadingPortfolio] = useState(false)
+  const [lightboxIndex, setLightboxIndex] = useState(null)
 
   const fetchProfile = async () => {
     const snap = await getDoc(doc(db, 'profiles', auth.currentUser.uid))
@@ -106,9 +110,10 @@ const Profile = ({ onOpenInbox }) => {
   }
 
   if (view === 'admin') return <AdminPanel onBack={() => setView('main')} />
+  if (view === 'help') return <Help onBack={() => setView('main')} />
 
   if (loading) {
-    return <div className="p-6 text-center"><p className="text-dark-text/60">جاري التحميل...</p></div>
+    return <LoadingSpinner text="جاري تحميل حسابك..." />
   }
 
   const isCraftsman = profile?.accountType === 'craftsman'
@@ -219,7 +224,12 @@ const Profile = ({ onOpenInbox }) => {
               <div className="grid grid-cols-3 gap-2">
                 {profile.portfolioImages.map((url, i) => (
                   <div key={i} className="relative">
-                    <img src={url} alt="" className="w-full h-20 object-cover rounded-lg" />
+                    <img
+                      src={url}
+                      alt=""
+                      onClick={() => setLightboxIndex(i)}
+                      className="w-full h-20 object-cover rounded-lg cursor-pointer"
+                    />
                     <button
                       onClick={() => handleRemovePortfolioImage(url)}
                       className="absolute top-0.5 left-0.5 bg-black/50 text-white rounded-full w-5 h-5 text-xs flex items-center justify-center"
@@ -234,10 +244,8 @@ const Profile = ({ onOpenInbox }) => {
         )}
 
         <div className="border-t border-warm-gray pt-2">
-          <button onClick={onOpenInbox} className="w-full text-right py-2.5 border-b border-warm-gray text-dark-text flex justify-between items-center">
-            <span>💬</span>
-            <span className="flex-1 text-right mr-2">المحادثات</span>
-          </button>
+          <button onClick={onOpenInbox} className="w-full text-right py-2.5 border-b border-warm-gray text-dark-text">المحادثات</button>
+          <button onClick={() => setView('help')} className="w-full text-right py-2.5 border-b border-warm-gray text-dark-text">المساعدة والأسئلة الشائعة</button>
           {profile?.isAdmin && (
             <button onClick={() => setView('admin')} className="w-full text-right py-2.5 border-b border-warm-gray text-dark-text">لوحة التحكم الإدارية</button>
           )}
@@ -252,6 +260,14 @@ const Profile = ({ onOpenInbox }) => {
       )}
       {view === 'terms' && (
         <PolicyModal title="شروط الاستخدام" content={termsText} onClose={() => setView('main')} />
+      )}
+
+      {lightboxIndex !== null && (
+        <ImageLightbox
+          images={profile.portfolioImages}
+          initialIndex={lightboxIndex}
+          onClose={() => setLightboxIndex(null)}
+        />
       )}
     </div>
   )
