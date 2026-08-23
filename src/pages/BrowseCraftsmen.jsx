@@ -11,6 +11,7 @@ const BrowseCraftsmen = ({ onOpenCraftsmanProfile }) => {
   const [filterArea, setFilterArea] = useState('')
   const [sortBy, setSortBy] = useState('rating')
   const [searchText, setSearchText] = useState('')
+  const [onlyAvailable, setOnlyAvailable] = useState(false)
   const [favorites, setFavorites] = useState([])
 
   useEffect(() => {
@@ -49,6 +50,7 @@ const BrowseCraftsmen = ({ onOpenCraftsmanProfile }) => {
     if (filterSpec && !c.specializations?.includes(filterSpec)) return false
     if (filterArea && !c.areas?.includes(filterArea)) return false
     if (searchText.trim() && !c.fullName?.includes(searchText.trim())) return false
+    if (onlyAvailable && c.available === false) return false
     return true
   })
 
@@ -94,6 +96,16 @@ const BrowseCraftsmen = ({ onOpenCraftsmanProfile }) => {
         </select>
       </div>
 
+      <label className="flex items-center gap-2 mb-3 text-sm text-dark-text">
+        <input
+          type="checkbox"
+          checked={onlyAvailable}
+          onChange={(e) => setOnlyAvailable(e.target.checked)}
+          className="accent-copper"
+        />
+        عرض المتاحين الآن فقط
+      </label>
+
       <div className="flex gap-2 mb-4">
         <button
           onClick={() => setSortBy('rating')}
@@ -129,11 +141,16 @@ const BrowseCraftsmen = ({ onOpenCraftsmanProfile }) => {
                 onClick={() => onOpenCraftsmanProfile(c.id)}
                 className="bg-card-bg rounded-2xl shadow-sm p-4 flex items-center gap-3 cursor-pointer active:opacity-80"
               >
-                <div className="w-14 h-14 rounded-full bg-warm-gray overflow-hidden flex items-center justify-center flex-shrink-0">
-                  {c.photoURL ? (
-                    <img src={c.photoURL} alt="" className="w-full h-full object-cover" />
-                  ) : (
-                    <span className="text-xl text-white">{c.fullName?.charAt(0) || '؟'}</span>
+                <div className="relative flex-shrink-0">
+                  <div className="w-14 h-14 rounded-full bg-warm-gray overflow-hidden flex items-center justify-center">
+                    {c.photoURL ? (
+                      <img src={c.photoURL} alt="" className="w-full h-full object-cover" />
+                    ) : (
+                      <span className="text-xl text-white">{c.fullName?.charAt(0) || '؟'}</span>
+                    )}
+                  </div>
+                  {c.available !== false && (
+                    <span className="absolute bottom-0 left-0 w-3.5 h-3.5 bg-green-500 border-2 border-card-bg rounded-full"></span>
                   )}
                 </div>
                 <div className="flex-1 min-w-0">
