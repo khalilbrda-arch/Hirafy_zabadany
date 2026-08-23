@@ -5,6 +5,7 @@ import { signOut } from 'firebase/auth'
 import { uploadImage } from '../uploadImage'
 import AdminPanel from './AdminPanel'
 import Help from './Help'
+import AccountSettings from './AccountSettings'
 import PolicyModal from '../components/PolicyModal'
 import ImageLightbox from '../components/ImageLightbox'
 import LoadingSpinner from '../components/LoadingSpinner'
@@ -111,6 +112,7 @@ const Profile = ({ onOpenInbox }) => {
 
   if (view === 'admin') return <AdminPanel onBack={() => setView('main')} />
   if (view === 'help') return <Help onBack={() => setView('main')} />
+  if (view === 'settings') return <AccountSettings onBack={() => setView('main')} />
 
   if (loading) {
     return <LoadingSpinner text="جاري تحميل حسابك..." />
@@ -245,6 +247,7 @@ const Profile = ({ onOpenInbox }) => {
 
         <div className="border-t border-warm-gray pt-2">
           <button onClick={onOpenInbox} className="w-full text-right py-2.5 border-b border-warm-gray text-dark-text">المحادثات</button>
+          <button onClick={() => setView('settings')} className="w-full text-right py-2.5 border-b border-warm-gray text-dark-text">إعدادات الحساب</button>
           <button onClick={() => setView('help')} className="w-full text-right py-2.5 border-b border-warm-gray text-dark-text">المساعدة والأسئلة الشائعة</button>
           {profile?.isAdmin && (
             <button onClick={() => setView('admin')} className="w-full text-right py-2.5 border-b border-warm-gray text-dark-text">لوحة التحكم الإدارية</button>
