@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { auth, db } from '../firebase'
 import { createUserWithEmailAndPassword, signInWithEmailAndPassword } from 'firebase/auth'
 import { doc, setDoc } from 'firebase/firestore'
+import ForgotPasswordModal from './ForgotPasswordModal'
 
 const translateError = (code) => {
   switch (code) {
@@ -28,6 +29,7 @@ const LoginRegister = ({ onLoginSuccess }) => {
   const [accountType, setAccountType] = useState(null)
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
+  const [showForgotPassword, setShowForgotPassword] = useState(false)
 
   const handleSubmit = async (e) => {
     e.preventDefault()
@@ -159,6 +161,15 @@ const LoginRegister = ({ onLoginSuccess }) => {
             </button>
           </form>
 
+          {mode === 'login' && (
+            <button
+              onClick={() => setShowForgotPassword(true)}
+              className="w-full text-center text-dark-text/60 text-xs mt-3 underline"
+            >
+              نسيت كلمة المرور؟
+            </button>
+          )}
+
           <div className="mt-6 text-center">
             <button
               onClick={() => { setMode(mode === 'login' ? 'register' : 'login'); setError(''); }}
@@ -169,6 +180,10 @@ const LoginRegister = ({ onLoginSuccess }) => {
           </div>
         </div>
       </div>
+
+      {showForgotPassword && (
+        <ForgotPasswordModal onClose={() => setShowForgotPassword(false)} />
+      )}
     </div>
   )
 }
