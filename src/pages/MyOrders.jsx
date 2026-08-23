@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react'
 import { db, auth } from '../firebase'
 import { collection, query, where, onSnapshot, updateDoc, doc, serverTimestamp } from 'firebase/firestore'
+import LoadingSpinner from '../components/LoadingSpinner'
+import EmptyState from '../components/EmptyState'
 
 const statusColors = {
   'منشور': 'bg-blue-50 text-blue-700 border-blue-200',
@@ -69,6 +71,7 @@ const MyOrders = ({ onOpenRequest }) => {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [tab, setTab] = useState('active')
+  const [searchText, setSearchText] = useState('')
 
   useEffect(() => {
     if (!auth.currentUser) {
@@ -86,16 +89,30 @@ const MyOrders = ({ onOpenRequest }) => {
     return () => unsubscribe()
   }, [])
 
-  if (loading) return <div className="p-6 text-center"><p className="text-dark-text/60">جاري التحميل...</p></div>
+  if (loading) return <LoadingSpinner text="جاري تحميل طلباتك..." />
   if (error) return <div className="p-6 text-center"><p className="text-red-600 text-sm">خطأ: {error}</p></div>
 
-  const filteredOrders = orders.filter((o) =>
+  let filteredOrders = orders.filter((o) =>
     tab === 'active' ? activeStatuses.includes(o.status) : historyStatuses.includes(o.status)
   )
+
+  if (searchText.trim()) {
+    filteredOrders = filteredOrders.filter((o) =>
+      o.specialization?.includes(searchText.trim()) || o.description?.includes(searchText.trim())
+    )
+  }
 
   return (
     <div className="p-4">
       <h2 className="text-xl font-medium mb-4 text-center">طلباتي</h2>
+
+      <input
+        type="text"
+        value={searchText}
+        onChange={(e) => setSearchText(e.target.value)}
+        placeholder="ابحث بالتخصص أو الوصف..."
+        className="w-full px-4 py-2.5 border border-warm-gray rounded-xl focus:outline-none focus:ring-2 focus:ring-copper bg-white mb-3 text-sm"
+      />
 
       <div className="flex gap-2 mb-4">
         <button
@@ -117,9 +134,10 @@ const MyOrders = ({ onOpenRequest }) => {
       </div>
 
       {filteredOrders.length === 0 ? (
-        <p className="text-dark-text/70 text-center mt-6">
-          {tab === 'active' ? 'لا توجد طلبات نشطة حالياً' : 'لا يوجد سجل طلبات سابقة'}
-        </p>
+        <EmptyState
+          icon="📋"
+          title={tab === 'active' ? 'لا توجد طلبات نشطة حالياً' : 'لا يوجد سجل طلبات سابقة'}
+        />
       ) : (
         <div className="space-y-3">
           {filteredOrders.map((order) => (
