@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { db, auth } from '../firebase'
-import { collection, addDoc, serverTimestamp, query, where, onSnapshot, getDocs, Timestamp, orderBy, limit } from 'firebase/firestore'
+import { collection, addDoc, serverTimestamp, query, where, onSnapshot, getDocs, Timestamp, orderBy, limit, doc, updateDoc } from 'firebase/firestore'
 import { specializations } from '../data/specializations'
 import { areas } from '../data/areas'
 import { uploadImage } from '../uploadImage'
@@ -199,11 +199,7 @@ const CustomerHomeExtra = ({ profile }) => {
           where('accountType', '==', 'craftsman')
         )
         const craftsmenSnap = await getDocs(craftsmenQuery)
-        const matching = craftsmenSnap.docs.filter((d) => {
-          const data = d.data()
-          return !data.banned && data.areas?.includes(profile?.residenceArea || '')
-        })
-        setCraftsmenCount(matching.length || craftsmenSnap.size)
+        setCraftsmenCount(craftsmenSnap.size)
 
         const myQuery = query(
           collection(db, 'requests'),
@@ -228,6 +224,38 @@ const CustomerHomeExtra = ({ profile }) => {
       <StatCard number={craftsmenCount} label="حرفي متاح" />
       <StatCard number={myActiveCount} label="طلب نشط لك" />
     </div>
+  )
+}
+
+const AvailabilityToggle = ({ profile, onToggle }) => {
+  const [updating, setUpdating] = useState(false)
+  const available = profile?.available !== false
+
+  const handleToggle = async () => {
+    setUpdating(true)
+    try {
+      await updateDoc(doc(db, 'profiles', auth.currentUser.uid), { available: !available })
+      onToggle(!available)
+    } catch (err) {
+      console.error(err)
+    } finally {
+      setUpdating(false)
+    }
+  }
+
+  return (
+    <button
+      onClick={handleToggle}
+      disabled={updating}
+      className={`w-full mb-4 py-2.5 rounded-xl text-sm font-medium border transition-colors flex items-center justify-center gap-2 ${
+        available
+          ? 'bg-green-50 border-green-300 text-green-700'
+          : 'bg-gray-50 border-gray-300 text-gray-500'
+      }`}
+    >
+      <span className={`w-2 h-2 rounded-full ${available ? 'bg-green-500' : 'bg-gray-400'}`}></span>
+      {available ? 'متاح لاستقبال الطلبات الآن' : 'غير متاح حالياً (اضغط للتفعيل)'}
+    </button>
   )
 }
 
@@ -275,6 +303,11 @@ const AvailableRequestsList = ({ profile, onOpenRequest }) => {
           profile?.specializations?.includes(r.specialization) &&
           profile?.areas?.includes(r.area)
         )
+        .sort((a, b) => {
+          if (a.urgency === 'طارئ' && b.urgency !== 'طارئ') return -1
+          if (a.urgency !== 'طارئ' && b.urgency === 'طارئ') return 1
+          return 0
+        })
       setRequests(data)
       setLoading(false)
     }, (err) => {
@@ -359,17 +392,22 @@ const RecentActivity = () => {
 
 const Home = ({ profile, onOpenRequest }) => {
   const [showForm, setShowForm] = useState(false)
+  const [localProfile, setLocalProfile] = useState(profile)
+
+  useEffect(() => {
+    setLocalProfile(profile)
+  }, [profile])
 
   if (showForm) {
     return <RequestForm onClose={() => setShowForm(false)} onPublished={() => setShowForm(false)} />
   }
 
-  const isCraftsman = profile?.accountType === 'craftsman'
+  const isCraftsman = localProfile?.accountType === 'craftsman'
 
   return (
     <div className="p-4">
       <div className="flex flex-col items-center mb-6 pt-4">
-        <h2 className="text-xl font-medium mb-1 text-center">مرحباً {profile?.fullName?.split(' ')[0] || ''} 👋</h2>
+        <h2 className="text-xl font-medium mb-1 text-center">مرحباً {localProfile?.fullName?.split(' ')[0] || ''} 👋</h2>
         <p className="text-sm text-dark-text/60 mb-4 text-center">أهلاً بك في حرفي الزبداني</p>
         {!isCraftsman && (
           <button
@@ -383,13 +421,17 @@ const Home = ({ profile, onOpenRequest }) => {
 
       {isCraftsman ? (
         <>
-          <CraftsmanHomeExtra profile={profile} />
+          <AvailabilityToggle
+            profile={localProfile}
+            onToggle={(newVal) => setLocalProfile((prev) => ({ ...prev, available: newVal }))}
+          />
+          <CraftsmanHomeExtra profile={localProfile} />
           <h2 className="text-lg font-medium mb-3 text-center">الطلبات المتاحة لك</h2>
-          <AvailableRequestsList profile={profile} onOpenRequest={onOpenRequest} />
+          <AvailableRequestsList profile={localProfile} onOpenRequest={onOpenRequest} />
         </>
       ) : (
         <>
-          <CustomerHomeExtra profile={profile} />
+          <CustomerHomeExtra profile={localProfile} />
           <RecentActivity />
         </>
       )}
