@@ -5,6 +5,8 @@ import Timeline from '../components/Timeline'
 import Chat from '../components/Chat'
 import RatingModal from '../components/RatingModal'
 import ReportButton from '../components/ReportButton'
+import ImageLightbox from '../components/ImageLightbox'
+import LoadingSpinner from '../components/LoadingSpinner'
 
 const Stars = ({ rating }) => {
   const rounded = Math.round(rating || 0)
@@ -210,6 +212,7 @@ const RequestDetails = ({ requestId, onBack, profile, onOpenCraftsmanProfile }) 
   const [loading, setLoading] = useState(true)
   const [alreadyRated, setAlreadyRated] = useState(false)
   const [cancelling, setCancelling] = useState(false)
+  const [lightboxIndex, setLightboxIndex] = useState(null)
 
   useEffect(() => {
     const unsubscribe = onSnapshot(doc(db, 'requests', requestId), (snap) => {
@@ -263,7 +266,7 @@ const RequestDetails = ({ requestId, onBack, profile, onOpenCraftsmanProfile }) 
   }
 
   if (loading) {
-    return <div className="p-6 text-center"><p className="text-dark-text/60">جاري التحميل...</p></div>
+    return <LoadingSpinner text="جاري تحميل تفاصيل الطلب..." />
   }
 
   if (!request) {
@@ -304,7 +307,13 @@ const RequestDetails = ({ requestId, onBack, profile, onOpenCraftsmanProfile }) 
         {request.images?.length > 0 && (
           <div className="grid grid-cols-2 gap-2 mb-4">
             {request.images.map((url, i) => (
-              <img key={i} src={url} alt="" className="w-full h-24 object-cover rounded-xl" />
+              <img
+                key={i}
+                src={url}
+                alt=""
+                onClick={() => setLightboxIndex(i)}
+                className="w-full h-24 object-cover rounded-xl cursor-pointer"
+              />
             ))}
           </div>
         )}
@@ -350,6 +359,14 @@ const RequestDetails = ({ requestId, onBack, profile, onOpenCraftsmanProfile }) 
           ratedUserId={ratedUserId}
           ratedUserRole={ratedUserRole}
           onDone={() => setAlreadyRated(true)}
+        />
+      )}
+
+      {lightboxIndex !== null && (
+        <ImageLightbox
+          images={request.images}
+          initialIndex={lightboxIndex}
+          onClose={() => setLightboxIndex(null)}
         />
       )}
     </div>
