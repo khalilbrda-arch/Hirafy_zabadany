@@ -6,6 +6,7 @@ import { uploadImage } from '../uploadImage'
 import AdminPanel from './AdminPanel'
 import Help from './Help'
 import AccountSettings from './AccountSettings'
+import Favorites from './Favorites'
 import PolicyModal from '../components/PolicyModal'
 import ImageLightbox from '../components/ImageLightbox'
 import LoadingSpinner from '../components/LoadingSpinner'
@@ -21,7 +22,7 @@ const Stars = ({ rating }) => {
   )
 }
 
-const Profile = ({ onOpenInbox }) => {
+const Profile = ({ onOpenInbox, onOpenCraftsmanProfile }) => {
   const [profile, setProfile] = useState(null)
   const [loading, setLoading] = useState(true)
   const [view, setView] = useState('main')
@@ -113,6 +114,7 @@ const Profile = ({ onOpenInbox }) => {
   if (view === 'admin') return <AdminPanel onBack={() => setView('main')} />
   if (view === 'help') return <Help onBack={() => setView('main')} />
   if (view === 'settings') return <AccountSettings onBack={() => setView('main')} />
+  if (view === 'favorites') return <Favorites onOpenCraftsmanProfile={onOpenCraftsmanProfile} />
 
   if (loading) {
     return <LoadingSpinner text="جاري تحميل حسابك..." />
@@ -246,6 +248,7 @@ const Profile = ({ onOpenInbox }) => {
         )}
 
         <div className="border-t border-warm-gray pt-2">
+          <button onClick={() => setView('favorites')} className="w-full text-right py-2.5 border-b border-warm-gray text-dark-text">المفضلة</button>
           <button onClick={onOpenInbox} className="w-full text-right py-2.5 border-b border-warm-gray text-dark-text">المحادثات</button>
           <button onClick={() => setView('settings')} className="w-full text-right py-2.5 border-b border-warm-gray text-dark-text">إعدادات الحساب</button>
           <button onClick={() => setView('help')} className="w-full text-right py-2.5 border-b border-warm-gray text-dark-text">المساعدة والأسئلة الشائعة</button>
@@ -262,18 +265,3 @@ const Profile = ({ onOpenInbox }) => {
         <PolicyModal title="سياسة الخصوصية" content={privacyText} onClose={() => setView('main')} />
       )}
       {view === 'terms' && (
-        <PolicyModal title="شروط الاستخدام" content={termsText} onClose={() => setView('main')} />
-      )}
-
-      {lightboxIndex !== null && (
-        <ImageLightbox
-          images={profile.portfolioImages}
-          initialIndex={lightboxIndex}
-          onClose={() => setLightboxIndex(null)}
-        />
-      )}
-    </div>
-  )
-}
-
-export default Profile
