@@ -2,11 +2,15 @@ import { useState, useEffect } from 'react'
 import { db, auth } from '../firebase'
 import { collection, query, where, onSnapshot, doc, updateDoc, arrayUnion, arrayRemove, getDoc } from 'firebase/firestore'
 import { areas } from '../data/areas'
+import { specializations } from '../data/specializations'
+import { SkeletonList } from '../components/Skeleton'
+import EmptyState from '../components/EmptyState'
 
 const BrowseCraftsmen = ({ onOpenCraftsmanProfile }) => {
   const [craftsmen, setCraftsmen] = useState([])
   const [loading, setLoading] = useState(true)
   const [filterArea, setFilterArea] = useState('')
+  const [filterSpec, setFilterSpec] = useState('')
   const [sortBy, setSortBy] = useState('rating')
   const [favorites, setFavorites] = useState([])
 
@@ -40,27 +44,33 @@ const BrowseCraftsmen = ({ onOpenCraftsmanProfile }) => {
   let filtered = craftsmen.filter((c) => {
     if (c.banned) return false
     if (filterArea && !c.areas?.includes(filterArea)) return false
+    if (filterSpec && !c.specializations?.includes(filterSpec)) return false
     return true
   })
   filtered = filtered.sort((a, b) => sortBy === 'rating' ? (b.rating || 0) - (a.rating || 0) : (b.completedJobs || 0) - (a.completedJobs || 0))
 
   return (
     <div>
-      <div className="flex gap-2 mb-3">
+      <div className="flex gap-2 mb-2">
+        <select value={filterSpec} onChange={(e) => setFilterSpec(e.target.value)} className="flex-1 px-3 py-2 border border-warm-gray rounded-xl bg-white text-sm">
+          <option value="">كل التخصصات</option>
+          {specializations.map((s) => <option key={s} value={s}>{s}</option>)}
+        </select>
         <select value={filterArea} onChange={(e) => setFilterArea(e.target.value)} className="flex-1 px-3 py-2 border border-warm-gray rounded-xl bg-white text-sm">
           <option value="">كل المناطق</option>
           {areas.map((a) => <option key={a} value={a}>{a}</option>)}
         </select>
-        <select value={sortBy} onChange={(e) => setSortBy(e.target.value)} className="flex-1 px-3 py-2 border border-warm-gray rounded-xl bg-white text-sm">
-          <option value="rating">الأعلى تقييماً</option>
-          <option value="jobs">الأكثر خبرة</option>
-        </select>
+      </div>
+
+      <div className="flex gap-2 mb-4">
+        <button onClick={() => setSortBy('rating')} className={`flex-1 py-1.5 rounded-lg text-xs font-medium ${sortBy === 'rating' ? 'bg-copper text-white' : 'bg-white text-dark-text border border-warm-gray'}`}>الأعلى تقييماً</button>
+        <button onClick={() => setSortBy('jobs')} className={`flex-1 py-1.5 rounded-lg text-xs font-medium ${sortBy === 'jobs' ? 'bg-copper text-white' : 'bg-white text-dark-text border border-warm-gray'}`}>الأكثر خبرة</button>
       </div>
 
       {loading ? (
-        <p className="text-dark-text/60 text-center">جاري التحميل...</p>
+        <SkeletonList count={4} />
       ) : filtered.length === 0 ? (
-        <div className="bg-card-bg rounded-2xl shadow-sm p-6 text-center"><p className="text-dark-text/60">لا يوجد حرفيون مطابقون</p></div>
+        <EmptyState icon="🔧" title="لا يوجد حرفيون مطابقون" />
       ) : (
         <div className="space-y-3">
           {filtered.map((c) => {
