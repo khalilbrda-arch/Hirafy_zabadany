@@ -10,7 +10,9 @@ import CraftsmanSetup from './pages/CraftsmanSetup'
 import RequestDetails from './pages/RequestDetails'
 import CraftsmanProfile from './pages/CraftsmanProfile'
 import Inbox from './pages/Inbox'
+import Explore from './pages/Explore'
 import NotificationSetup from './components/NotificationSetup'
+import PageTransition from './components/PageTransition'
 
 const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms))
 
@@ -62,7 +64,11 @@ function App() {
     return (
       <div className="min-h-screen bg-primary-bg text-dark-text flex flex-col" dir="rtl">
         <NotificationSetup />
-        <main className="flex-1 pb-20"><CraftsmanProfile craftsmanId={viewingCraftsmanId} onBack={closeCraftsmanProfile} /></main>
+        <main className="flex-1 pb-20">
+          <PageTransition pageKey={viewingCraftsmanId}>
+            <CraftsmanProfile craftsmanId={viewingCraftsmanId} onBack={closeCraftsmanProfile} />
+          </PageTransition>
+        </main>
         <BottomNav currentPage={currentPage} setCurrentPage={(p) => { setCurrentPage(p); closeCraftsmanProfile() }} />
       </div>
     )
@@ -73,7 +79,9 @@ function App() {
       <div className="min-h-screen bg-primary-bg text-dark-text flex flex-col" dir="rtl">
         <NotificationSetup />
         <main className="flex-1 pb-20">
-          <RequestDetails requestId={selectedRequestId} onBack={closeRequestDetails} profile={profile} onOpenCraftsmanProfile={openCraftsmanProfile} />
+          <PageTransition pageKey={selectedRequestId}>
+            <RequestDetails requestId={selectedRequestId} onBack={closeRequestDetails} profile={profile} onOpenCraftsmanProfile={openCraftsmanProfile} />
+          </PageTransition>
         </main>
         <BottomNav currentPage={currentPage} setCurrentPage={(p) => { setCurrentPage(p); closeRequestDetails() }} />
       </div>
@@ -84,6 +92,8 @@ function App() {
     switch (currentPage) {
       case 'home':
         return <Home profile={profile} onOpenRequest={openRequestDetails} onOpenCraftsmanProfile={openCraftsmanProfile} />
+      case 'explore':
+        return <Explore onOpenRequest={openRequestDetails} onOpenCraftsmanProfile={openCraftsmanProfile} />
       case 'inbox':
         return <Inbox onOpenRequest={openRequestDetails} />
       case 'profile':
@@ -96,7 +106,9 @@ function App() {
   return (
     <div className="min-h-screen bg-primary-bg text-dark-text flex flex-col" dir="rtl">
       <NotificationSetup />
-      <main className="flex-1 pb-20">{renderPage()}</main>
+      <main className="flex-1 pb-20">
+        <PageTransition pageKey={currentPage}>{renderPage()}</PageTransition>
+      </main>
       <BottomNav currentPage={currentPage} setCurrentPage={setCurrentPage} />
     </div>
   )
