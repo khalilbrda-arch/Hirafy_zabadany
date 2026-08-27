@@ -65,7 +65,7 @@ const LoginRegister = ({ onLoginSuccess }) => {
   }
 
   return (
-    <div className="min-h-screen bg-primary-bg flex items-center justify-center p-4">
+    <div className="min-h-screen flex items-center justify-center p-4" style={{ background: 'linear-gradient(180deg, #F5F1EA 0%, #EDE4D3 100%)' }}>
       <div className="w-full max-w-md">
         <div className="text-center mb-6">
           <div className="w-16 h-16 bg-copper rounded-2xl mx-auto mb-3 flex items-center justify-center text-white text-2xl">
