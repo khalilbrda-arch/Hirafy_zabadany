@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { auth, db } from '../firebase'
 import { updatePassword, deleteUser } from 'firebase/auth'
-import { doc, deleteDoc } from 'firebase/firestore'
+import { doc, deleteDoc, collection, query, where, getDocs, writeBatch } from 'firebase/firestore'
 import ConfirmDialog from '../components/ConfirmDialog'
 
 const AccountSettings = ({ onBack }) => {
@@ -37,7 +37,17 @@ const AccountSettings = ({ onBack }) => {
     setDeleting(true)
     setDeleteError('')
     try {
-      await deleteDoc(doc(db, 'profiles', auth.currentUser.uid))
+      const uid = auth.currentUser.uid
+      const batch = writeBatch(db)
+
+      const myRequests = await getDocs(query(collection(db, 'requests'), where('customerId', '==', uid)))
+      myRequests.forEach((d) => batch.delete(d.ref))
+
+      const myOffers = await getDocs(query(collection(db, 'offers'), where('craftsmanId', '==', uid)))
+      myOffers.forEach((d) => batch.delete(d.ref))
+
+      await batch.commit()
+      await deleteDoc(doc(db, 'profiles', uid))
       await deleteUser(auth.currentUser)
     } catch (err) {
       setDeleteError('حدث خطأ، قد تحتاج لتسجيل الدخول من جديد قبل حذف الحساب')
@@ -75,7 +85,7 @@ const AccountSettings = ({ onBack }) => {
 
       <div className="bg-card-bg rounded-2xl shadow-sm p-6">
         <h3 className="font-medium text-red-600 mb-2">حذف الحساب</h3>
-        <p className="text-sm text-dark-text/60 mb-3">سيتم حذف حسابك وبياناتك الشخصية نهائياً. لا يمكن التراجع عن هذا الإجراء.</p>
+        <p className="text-sm text-dark-text/60 mb-3">سيتم حذف حسابك، طلباتك، وعروضك نهائياً. لا يمكن التراجع عن هذا الإجراء.</p>
         {deleteError && <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl text-sm mb-3">{deleteError}</div>}
         <button
           onClick={() => setShowDeleteConfirm(true)}
@@ -88,7 +98,7 @@ const AccountSettings = ({ onBack }) => {
       {showDeleteConfirm && (
         <ConfirmDialog
           title="حذف الحساب"
-          message="هل أنت متأكد من حذف حسابك نهائياً؟ لا يمكن التراجع عن هذا الإجراء."
+          message="هل أنت متأكد من حذف حسابك نهائياً؟ سيتم حذف طلباتك وعروضك أيضاً."
           confirmLabel="حذف نهائياً"
           danger
           onConfirm={handleDeleteAccount}
